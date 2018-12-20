@@ -19,7 +19,7 @@ using Microsoft.Xna.Framework.Graphics;
 // we don't care so we just disable this warning.
 #pragma warning disable 67
 
-namespace WinFormsGraphicsDevice
+namespace XNBExtractor
 {
     /// <summary>
     /// Helper class responsible for creating and managing the GraphicsDevice.
@@ -33,7 +33,6 @@ namespace WinFormsGraphicsDevice
     {
         #region Fields
 
-
         // Singleton device service instance.
         static GraphicsDeviceService singletonInstance;
 
@@ -41,6 +40,19 @@ namespace WinFormsGraphicsDevice
         // Keep track of how many controls are sharing the singletonInstance.
         static int referenceCount;
 
+
+        /// <summary>
+        /// Gets the current graphics device.
+        /// </summary>
+        public GraphicsDevice GraphicsDevice { get; private set; }
+
+
+        public GraphicsProfile GraphicsProfile
+        {
+            get => _graphicsProfile;
+            set { if (GraphicsDevice?.IsDisposed != false) _graphicsProfile = value; }
+
+        }
 
         #endregion
 
@@ -51,18 +63,19 @@ namespace WinFormsGraphicsDevice
         /// </summary>
         GraphicsDeviceService(IntPtr windowHandle, int width, int height)
         {
-            parameters = new PresentationParameters();
+            parameters = new PresentationParameters
+            {
+                BackBufferWidth = Math.Max(width, 1),
+                BackBufferHeight = Math.Max(height, 1),
+                BackBufferFormat = SurfaceFormat.Color,
+                DepthStencilFormat = DepthFormat.Depth24,
+                DeviceWindowHandle = windowHandle,
+                PresentationInterval = PresentInterval.Immediate,
+                IsFullScreen = false
+            };
 
-            parameters.BackBufferWidth = Math.Max(width, 1);
-            parameters.BackBufferHeight = Math.Max(height, 1);
-            parameters.BackBufferFormat = SurfaceFormat.Color;
-            parameters.DepthStencilFormat = DepthFormat.Depth24;
-            parameters.DeviceWindowHandle = windowHandle;
-            parameters.PresentationInterval = PresentInterval.Immediate;
-            parameters.IsFullScreen = false;
-
-            graphicsDevice = new GraphicsDevice(GraphicsAdapter.DefaultAdapter,
-                                                GraphicsProfile.Reach,
+            GraphicsDevice = new GraphicsDevice(GraphicsAdapter.DefaultAdapter,
+                                                GraphicsProfile,
                                                 parameters);
         }
 
@@ -98,17 +111,15 @@ namespace WinFormsGraphicsDevice
                 // device, we should dispose the singleton instance.
                 if (disposing)
                 {
-                    if (DeviceDisposing != null)
-                        DeviceDisposing(this, EventArgs.Empty);
-
-                    graphicsDevice.Dispose();
+                    DeviceDisposing?.Invoke(this, EventArgs.Empty);
+                    GraphicsDevice.Dispose();
                 }
 
-                graphicsDevice = null;
+                GraphicsDevice = null;
             }
         }
 
-        
+
         /// <summary>
         /// Resets the graphics device to whichever is bigger out of the specified
         /// resolution or its current size. This behavior means the device will
@@ -116,32 +127,20 @@ namespace WinFormsGraphicsDevice
         /// </summary>
         public void ResetDevice(int width, int height)
         {
-            if (DeviceResetting != null)
-                DeviceResetting(this, EventArgs.Empty);
+            DeviceResetting?.Invoke(this, EventArgs.Empty);
 
             parameters.BackBufferWidth = Math.Max(parameters.BackBufferWidth, width);
             parameters.BackBufferHeight = Math.Max(parameters.BackBufferHeight, height);
 
-            graphicsDevice.Reset(parameters);
+            GraphicsDevice.Reset(parameters);
 
-            if (DeviceReset != null)
-                DeviceReset(this, EventArgs.Empty);
+            DeviceReset?.Invoke(this, EventArgs.Empty);
         }
-
-        
-        /// <summary>
-        /// Gets the current graphics device.
-        /// </summary>
-        public GraphicsDevice GraphicsDevice
-        {
-            get { return graphicsDevice; }
-        }
-
-        GraphicsDevice graphicsDevice;
 
 
         // Store the current device settings.
         PresentationParameters parameters;
+        private GraphicsProfile _graphicsProfile;
 
 
         // IGraphicsDeviceService events.

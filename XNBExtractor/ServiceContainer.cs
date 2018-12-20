@@ -12,7 +12,7 @@ using System;
 using System.Collections.Generic;
 #endregion
 
-namespace WinFormsGraphicsDevice
+namespace XNBExtractor
 {
     /// <summary>
     /// Container class implements the IServiceProvider interface. This is used
@@ -21,7 +21,7 @@ namespace WinFormsGraphicsDevice
     /// </summary>
     public class ServiceContainer : IServiceProvider
     {
-        Dictionary<Type, object> services = new Dictionary<Type, object>();
+        private readonly Dictionary<Type, object> services = new Dictionary<Type, object>();
 
 
         /// <summary>
@@ -38,9 +38,7 @@ namespace WinFormsGraphicsDevice
         /// </summary>
         public object GetService(Type serviceType)
         {
-            object service;
-
-            services.TryGetValue(serviceType, out service);
+            services.TryGetValue(serviceType, out object service);
 
             return service;
         }
