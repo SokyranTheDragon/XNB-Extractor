@@ -44,10 +44,36 @@ namespace XNBExtractor
         /// <summary>
         /// Gets the current graphics device.
         /// </summary>
-        public GraphicsDevice GraphicsDevice { get; private set; }
+        public GraphicsDevice GraphicsDevice
+        {
+            get => graphicsDevice;
+            private set => graphicsDevice = value;
+        }
 
 
-        public static GraphicsProfile GraphicsProfile { get; set; }
+        public static GraphicsProfile GraphicsProfile
+        {
+            get => graphicsProfile;
+            set
+            {
+                if (graphicsProfile != value)
+                {
+                    graphicsProfile = value;
+
+                    if (graphicsDevice != null && graphicsDevice.GraphicsProfile != value)
+                    {
+                        if (!graphicsDevice.IsDisposed)
+                        {
+                            graphicsDevice.Dispose();
+                        }
+
+                        graphicsDevice = new GraphicsDevice(GraphicsAdapter.DefaultAdapter,
+                                                            graphicsProfile,
+                                                            parameters);
+                    }
+                }
+            }
+        }
 
         #endregion
 
@@ -134,7 +160,9 @@ namespace XNBExtractor
 
 
         // Store the current device settings.
-        PresentationParameters parameters;
+        private static PresentationParameters parameters;
+        private static GraphicsProfile graphicsProfile;
+        private static GraphicsDevice graphicsDevice;
 
 
         // IGraphicsDeviceService events.
