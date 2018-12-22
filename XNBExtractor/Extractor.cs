@@ -28,56 +28,84 @@ namespace XNBExtractor
         public ImageExtension SaveImagesAs { get; set; }
 
 
+        public static GraphicsProfile GraphicsProfile
+        {
+            get => GraphicsDeviceService.GraphicsProfile;
+            set => GraphicsDeviceService.GraphicsProfile = value;
+        }
+
+
+        public bool Initialized { get; private set; } = false;
+
+
         private readonly List<string> filesToDelete = new List<string>();
 
 
-        public Extractor(Dictionary<string, AssetType> files)
+        private GraphicsDeviceService graphicsDeviceService;
+
+
+        private ContentManager content;
+
+
+        public void Initialize()
         {
+            if (Initialized)
+                return;
+
+            Initialized = true;
+
             var form = new Form();
-            var graphicsDeviceService = GraphicsDeviceService.AddRef(form.Handle, form.ClientSize.Width, form.ClientSize.Height);
+            graphicsDeviceService = GraphicsDeviceService.AddRef(form.Handle, form.ClientSize.Width, form.ClientSize.Height);
             var services = new ServiceContainer();
             services.AddService<IGraphicsDeviceService>(graphicsDeviceService);
-            var content = new ContentManager(services);
+            content = new ContentManager(services);
+        }
 
-            foreach (var (path, type) in files)
+
+        public void ProcessFiles(AssetType assetType, params string[] files)
+        {
+            if (!Initialized)
+                return;
+
+            Action<FileInfo> convertAction;
+
+            switch (assetType)
             {
-                Console.WriteLine($"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name} - {type} - {path}");
+                case AssetType.Texture2D:
+                    convertAction = ConvertTexture2DToImage;
+                    break;
+                case AssetType.TextureCube:
+                    convertAction = ConvertTextureCubeToImage;
+                    break;
+                case AssetType.MusicOrSound:
+                    throw new NotImplementedException();
+                default:
+                    Console.WriteLine("Unsupported asset type.");
+                    return;
+            }
 
-                var file = new FileInfo(path);
+            Console.WriteLine($"Asset type set to {assetType.ToString()}");
 
-                if (file.Exists)
+            foreach (var file in files)
+            {
+                Console.WriteLine($"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name} - {file}");
+
+                var info = new FileInfo(file);
+
+                if (info.Exists)
                 {
-                    if (file.Extension.ToLower() == ".xnb")
-                    {
-                        switch (type)
-                        {
-                            case AssetType.Texture2D:
-                                ConvertTexture2DToPng(content, file);
-                                break;
-                            case AssetType.TextureCube:
-                                ConvertTextureCubeToPng(content, file, graphicsDeviceService.GraphicsDevice);
-                                break;
-                            case AssetType.MusicOrSound:
-                                throw new NotImplementedException();
-                            default:
-                                Console.WriteLine("Unsupported asset type.");
-                                break;
-                        }
-                    }
+                    if (info.Extension.ToLower() == ".xnb")
+                        convertAction(info);
                     else
-                    {
-                        Console.WriteLine($"Invalid file extension - .xnb expected, got {file.Extension} instead.");
-                    }
+                        Console.WriteLine($"Invalid file extension - .xnb expected, got {info.Extension} instead.");
                 }
                 else
-                {
                     Console.WriteLine("Invalid file.");
-                }
             }
         }
 
 
-        private void ConvertTexture2DToPng(ContentManager content, FileInfo file)
+        private void ConvertTexture2DToImage(FileInfo file)
         {
             try
             {
@@ -112,7 +140,7 @@ namespace XNBExtractor
         }
 
 
-        private void ConvertTextureCubeToPng(ContentManager content, FileInfo file, GraphicsDevice graphicsDevice)
+        private void ConvertTextureCubeToImage(FileInfo file)
         {
             try
             {
@@ -121,7 +149,7 @@ namespace XNBExtractor
                 filesToDelete.Add(fileCopy.FullName);
                 
                 using (var cube = content.Load<TextureCube>(fileCopy.FullName))
-                using (var texture = new Texture2D(graphicsDevice, cube.Size, cube.Size))
+                using (var texture = new Texture2D(graphicsDeviceService.GraphicsDevice, cube.Size, cube.Size))
                 {
                     var data = new int[cube.Size * cube.Size];
 

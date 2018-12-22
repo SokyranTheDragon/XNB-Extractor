@@ -47,12 +47,7 @@ namespace XNBExtractor
         public GraphicsDevice GraphicsDevice { get; private set; }
 
 
-        public GraphicsProfile GraphicsProfile
-        {
-            get => _graphicsProfile;
-            set { if (GraphicsDevice?.IsDisposed != false) _graphicsProfile = value; }
-
-        }
+        public static GraphicsProfile GraphicsProfile { get; set; }
 
         #endregion
 
@@ -140,7 +135,6 @@ namespace XNBExtractor
 
         // Store the current device settings.
         PresentationParameters parameters;
-        private GraphicsProfile _graphicsProfile;
 
 
         // IGraphicsDeviceService events.
