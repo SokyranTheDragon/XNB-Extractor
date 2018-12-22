@@ -79,7 +79,7 @@ namespace XNBExtractor
                     return;
             }
 
-            Console.WriteLine($"Asset type set to {assetType.ToString()}");
+            Console.WriteLine($"Asset type is set to {assetType.ToString()}");
 
             foreach (var file in files)
             {
@@ -95,7 +95,7 @@ namespace XNBExtractor
                         Console.WriteLine($"Invalid file extension - .xnb expected, got {info.Extension} instead.");
                 }
                 else
-                    Console.WriteLine("Invalid file.");
+                    Console.WriteLine($"File doesn't exist: {file}");
             }
 
             foreach (var file in filesToDelete)
@@ -106,6 +106,7 @@ namespace XNBExtractor
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine("Caught exception while deleting files:");
                     Console.WriteLine(e.Message);
                 }
             }
@@ -140,6 +141,7 @@ namespace XNBExtractor
             }
             catch (Exception e)
             {
+                Console.WriteLine("Caught exception while converting Texture2D to Image:");
                 Console.WriteLine(e.Message);
             }
         }
@@ -184,6 +186,7 @@ namespace XNBExtractor
             }
             catch (Exception e)
             {
+                Console.WriteLine("Caught exception while converting TextureCube to images:");
                 Console.WriteLine(e.Message);
             }
         }
