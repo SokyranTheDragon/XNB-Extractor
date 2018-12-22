@@ -14,6 +14,7 @@ namespace XNBExtractor.WinForms
     public partial class Form1 : Form
     {
         private readonly Extractor extractor = new Extractor();
+        private bool isConverting = false;
 
         public Form1()
         {
@@ -67,6 +68,7 @@ namespace XNBExtractor.WinForms
 
         private void Form1_DragDrop(object sender, DragEventArgs e)
         {
+            isConverting = true;
             comboBox1.Enabled = comboBox2.Enabled = comboBox3.Enabled = false;
 
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -75,6 +77,20 @@ namespace XNBExtractor.WinForms
             extractor.ProcessFiles((Extractor.AssetType)comboBox1.SelectedValue, files);
 
             comboBox1.Enabled = comboBox2.Enabled = comboBox3.Enabled = true;
+            isConverting = false;
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            extractor.Dispose();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (isConverting)
+            {
+                e.Cancel = true;
+            }
         }
     }
 }
