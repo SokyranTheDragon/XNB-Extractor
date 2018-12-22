@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using XNBExtractor.ExtensionMethods;
 
 namespace XNBExtractor
 {
-    public class Extractor
+    public sealed class Extractor : IDisposable
     {
         public enum AssetType
         {
@@ -46,14 +41,14 @@ namespace XNBExtractor
 
         private ContentManager content;
 
-
+        
         public void Initialize()
         {
             if (Initialized)
                 return;
 
             Initialized = true;
-
+            
             var form = new Form();
             graphicsDeviceService = GraphicsDeviceService.AddRef(form.Handle, form.ClientSize.Width, form.ClientSize.Height);
             var services = new ServiceContainer();
@@ -61,7 +56,7 @@ namespace XNBExtractor
             content = new ContentManager(services);
         }
 
-
+        
         public void ProcessFiles(AssetType assetType, params string[] files)
         {
             if (!Initialized)
@@ -102,35 +97,45 @@ namespace XNBExtractor
                 else
                     Console.WriteLine("Invalid file.");
             }
+
+            foreach (var file in filesToDelete)
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
         }
 
-
+        
         private void ConvertTexture2DToImage(FileInfo file)
         {
             try
             {
-                var fileCopy = file.CopyTo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{file.Name}.tmp.xnb"));
+                var fileCopy = file.CopyTo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file.Name.Replace(".xnb", ".tmp.xnb")));
                 var assetName = $"{file.Name}.tmp.xnb";
                 filesToDelete.Add(fileCopy.FullName);
+                var texture = content.Load<Texture2D>(fileCopy.Name.Replace(".xnb", ""));
 
-                using (var texture = content.Load<Texture2D>(fileCopy.FullName))
+                var extension = SaveImagesAs == ImageExtension.Png ? "png" : "jpeg";
+                var fileToSave = file.FullName.Replace(".xnb", $".{extension}");
+
+                if (File.Exists(fileToSave))
                 {
-                    var extension = SaveImagesAs == ImageExtension.Png ? "png" : "jpeg";
-                    var fileToSave = file.FullName.Replace(".xnb", $".{extension}");
+                    var result = MessageBox.Show($"{fileToSave} Already exists, replace it?", System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, MessageBoxButtons.YesNo);
 
-                    if (File.Exists(fileToSave))
-                    {
-                        var result = MessageBox.Show($"{fileToSave} Already exists, replace it?", System.Reflection.Assembly.GetExecutingAssembly().GetName().Name, MessageBoxButtons.YesNo);
-
-                        if (result == DialogResult.Yes)
-                        {
-                            SaveImage(texture, fileToSave);
-                        }
-                    }
-                    else
+                    if (result == DialogResult.Yes)
                     {
                         SaveImage(texture, fileToSave);
                     }
+                }
+                else
+                {
+                    SaveImage(texture, fileToSave);
                 }
             }
             catch (Exception e)
@@ -138,17 +143,17 @@ namespace XNBExtractor
                 Console.WriteLine(e.Message);
             }
         }
-
-
+        
+        
         private void ConvertTextureCubeToImage(FileInfo file)
         {
             try
             {
-                var fileCopy = file.CopyTo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{file.Name}.tmp.xnb"));
+                var fileCopy = file.CopyTo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file.Name.Replace(".xnb", ".tmp.xnb")));
                 var assetName = $"{file.Name}.tmp.xnb";
                 filesToDelete.Add(fileCopy.FullName);
-                
-                using (var cube = content.Load<TextureCube>(fileCopy.FullName))
+                var cube = content.Load<TextureCube>(fileCopy.Name.Replace(".xnb", ""));
+
                 using (var texture = new Texture2D(graphicsDeviceService.GraphicsDevice, cube.Size, cube.Size))
                 {
                     var data = new int[cube.Size * cube.Size];
@@ -199,6 +204,13 @@ namespace XNBExtractor
 
                 Console.WriteLine($"Created: {stream.Name}");
             }
+        }
+
+
+        public void Dispose()
+        {
+            ((IDisposable)content).Dispose();
+            graphicsDeviceService.Release(true);
         }
     }
 }
