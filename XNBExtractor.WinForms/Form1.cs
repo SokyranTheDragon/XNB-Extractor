@@ -13,7 +13,7 @@ namespace XNBExtractor.WinForms
 {
     public partial class Form1 : Form
     {
-        private Extractor extractor = new Extractor();
+        private readonly Extractor extractor = new Extractor();
 
         public Form1()
         {
@@ -55,6 +55,9 @@ namespace XNBExtractor.WinForms
             label4.Top = (ClientSize.Height - label4.Height) / 2;
 
             MinimumSize = new Size(Size.Width, Size.Height / 2);
+
+            Extractor.GraphicsProfile = GraphicsProfile.HiDef;
+            extractor.Initialize();
         }
 
         private void Form1_DragEnter(object sender, DragEventArgs e)
@@ -64,10 +67,14 @@ namespace XNBExtractor.WinForms
 
         private void Form1_DragDrop(object sender, DragEventArgs e)
         {
+            comboBox1.Enabled = comboBox2.Enabled = comboBox3.Enabled = false;
+
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
             extractor.Initialize();
             extractor.ProcessFiles((Extractor.AssetType)comboBox1.SelectedValue, files);
+
+            comboBox1.Enabled = comboBox2.Enabled = comboBox3.Enabled = true;
         }
     }
 }
